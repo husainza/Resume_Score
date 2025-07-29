@@ -81,12 +81,23 @@ function updateApiKeyStatus() {
     const configuredDiv = document.getElementById('apiKeyConfigured');
     const missingDiv = document.getElementById('apiKeyMissing');
     
+    console.log('API Key Status:', status);
+    
     if (status.configured) {
         configuredDiv.classList.remove('hidden');
         missingDiv.classList.add('hidden');
+        
+        // Update the status message to show deployment vs local
+        const statusMessage = configuredDiv.querySelector('p');
+        if (statusMessage) {
+            statusMessage.textContent = status.message;
+        }
+        
+        console.log('✅ API key is configured and ready to use');
     } else {
         configuredDiv.classList.add('hidden');
         missingDiv.classList.remove('hidden');
+        console.log('❌ API key is not configured:', status.message);
     }
 }
 
