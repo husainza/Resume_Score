@@ -1,0 +1,43 @@
+{
+  "name": "ai-cv-screener",
+  "version": "1.0.0",
+  "description": "A modern web application that automates CV screening and ranks candidates based on relevance to job descriptions using OpenAI GPT. Features embedded API key configuration for easy deployment.",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx http-server -p 8000 -o",
+    "test": "echo \"Open test.html in your browser to test the application\"",
+    "deploy": "echo \"Deploy to your preferred hosting platform\""
+  },
+  "keywords": [
+    "cv-screening",
+    "ai",
+    "claude",
+    "recruitment",
+    "hr",
+    "job-matching",
+    "resume-parser",
+    "candidate-ranking"
+  ],
+  "author": "AI CV Screener Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ai-cv-screener.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ai-cv-screener/issues"
+  },
+  "homepage": "https://yourusername.github.io/ai-cv-screener",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+} 

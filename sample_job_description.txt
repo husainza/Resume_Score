@@ -1,0 +1,42 @@
+Senior Software Engineer - Full Stack Development
+
+Job Description:
+
+We are seeking a talented Senior Software Engineer to join our dynamic development team. This role involves building scalable web applications and contributing to our product development efforts.
+
+Key Responsibilities:
+- Design and develop full-stack web applications using modern technologies
+- Collaborate with cross-functional teams to define, design, and ship new features
+- Write clean, maintainable, and efficient code
+- Participate in code reviews and technical discussions
+- Mentor junior developers and share best practices
+- Troubleshoot and debug complex issues
+- Optimize applications for maximum speed and scalability
+
+Required Skills:
+- 5+ years of experience in software development
+- Strong proficiency in JavaScript/TypeScript, Python, or Java
+- Experience with modern frontend frameworks (React, Vue.js, or Angular)
+- Knowledge of backend development and APIs
+- Experience with databases (SQL and NoSQL)
+- Familiarity with cloud platforms (AWS, Azure, or GCP)
+- Understanding of CI/CD pipelines and DevOps practices
+- Strong problem-solving and analytical skills
+
+Preferred Qualifications:
+- Experience with microservices architecture
+- Knowledge of containerization (Docker, Kubernetes)
+- Understanding of machine learning concepts
+- Experience with agile development methodologies
+- Contributions to open-source projects
+- Bachelor's degree in Computer Science or related field
+
+What We Offer:
+- Competitive salary and benefits
+- Flexible work arrangements
+- Professional development opportunities
+- Collaborative and innovative work environment
+- Health, dental, and vision insurance
+- 401(k) matching program
+
+This is a full-time position with opportunities for growth and advancement within the company. 
