@@ -3,81 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI CV Screener - Test Page</title>
+    <title>API Configuration Test</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-4xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow-sm border p-8">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-brain text-white text-2xl"></i>
+<body class="bg-gray-50 min-h-screen p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">API Configuration Test</h1>
+        
+        <div class="bg-white rounded-lg shadow-sm border p-6 space-y-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">Configuration Status</h2>
+                <div id="configStatus" class="text-sm text-gray-600">
+                    Loading...
                 </div>
-                                        <h1 class="text-3xl font-bold text-gray-900 mb-2">AI CV Screener</h1>
-                        <p class="text-gray-600">Powered by OpenAI GPT</p>
             </div>
             
-            <div class="space-y-6">
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center">
-                        <i class="fas fa-check-circle text-green-600 mr-3"></i>
-                        <div>
-                            <h3 class="font-medium text-green-800">Application Loaded Successfully</h3>
-                            <p class="text-green-700 text-sm">All required dependencies are available.</p>
-                        </div>
-                    </div>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">API Key Status</h2>
+                <div id="apiKeyStatus" class="text-sm text-gray-600">
+                    Loading...
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 class="font-medium text-blue-800 mb-2">Dependencies Check</h3>
-                        <ul class="text-sm text-blue-700 space-y-1">
-                            <li>✓ Tailwind CSS</li>
-                            <li>✓ Font Awesome Icons</li>
-                            <li>✓ OpenAI API</li>
-                            <li>✓ PDF.js</li>
-                            <li>✓ Mammoth.js</li>
-                            <li>✓ Chart.js</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <h3 class="font-medium text-purple-800 mb-2">Features Available</h3>
-                        <ul class="text-sm text-purple-700 space-y-1">
-                            <li>✓ File Upload & Processing</li>
-                            <li>✓ Claude AI Integration</li>
-                            <li>✓ Results Analysis</li>
-                            <li>✓ Export Functionality</li>
-                            <li>✓ Responsive Design</li>
-                            <li>✓ Modern UI</li>
-                        </ul>
-                    </div>
+            </div>
+            
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">Service Status</h2>
+                <div id="serviceStatus" class="text-sm text-gray-600">
+                    Loading...
                 </div>
-                
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div class="flex items-center">
-                        <i class="fas fa-info-circle text-yellow-600 mr-3"></i>
-                        <div>
-                            <h3 class="font-medium text-yellow-800">Next Steps</h3>
-                            <p class="text-yellow-700 text-sm">
-                                To use the application, first configure your OpenAI API key in <code class="bg-gray-100 px-1 rounded">app.js</code> 
-                                (replace <code>'sk-your-openai-api-key-here'</code> with your actual key), 
-                                then open <a href="index.html" class="underline font-medium">index.html</a>.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center">
-                    <a href="index.html" 
-                       class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i class="fas fa-rocket mr-2"></i>
-                        Launch Application
-                    </a>
-                </div>
+            </div>
+            
+            <div class="pt-4 border-t">
+                <button id="testBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Test API Connection
+                </button>
+            </div>
+            
+            <div id="testResult" class="hidden">
+                <h3 class="font-medium text-gray-900 mb-2">Test Result:</h3>
+                <div id="testOutput" class="bg-gray-100 p-3 rounded text-sm font-mono"></div>
             </div>
         </div>
     </div>
+
+    <script src="config.js"></script>
+    <script src="api-service.js"></script>
+    <script>
+        // Test configuration and service
+        function updateStatus() {
+            // Configuration status
+            const configErrors = validateConfig();
+            const configStatus = document.getElementById('configStatus');
+            if (configErrors.length > 0) {
+                configStatus.innerHTML = `<span class="text-red-600">❌ Configuration errors: ${configErrors.join(', ')}</span>`;
+            } else {
+                configStatus.innerHTML = '<span class="text-green-600">✅ Configuration is valid</span>';
+            }
+            
+            // API key status
+            const apiStatus = getApiKeyStatus();
+            const apiKeyStatus = document.getElementById('apiKeyStatus');
+            if (apiStatus.configured) {
+                apiKeyStatus.innerHTML = `<span class="text-green-600">✅ ${apiStatus.message}</span>`;
+            } else {
+                apiKeyStatus.innerHTML = `<span class="text-red-600">❌ ${apiStatus.message}</span>`;
+            }
+            
+            // Service status
+            const serviceStatus = document.getElementById('serviceStatus');
+            if (typeof OpenAIService !== 'undefined') {
+                serviceStatus.innerHTML = '<span class="text-green-600">✅ OpenAIService class is available</span>';
+            } else {
+                serviceStatus.innerHTML = '<span class="text-red-600">❌ OpenAIService class not found</span>';
+            }
+        }
+        
+        // Test API connection
+        async function testConnection() {
+            const testBtn = document.getElementById('testBtn');
+            const testResult = document.getElementById('testResult');
+            const testOutput = document.getElementById('testOutput');
+            
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+            testResult.classList.add('hidden');
+            
+            try {
+                const service = new OpenAIService();
+                const result = await service.testConnection();
+                
+                testOutput.textContent = `✅ Test successful: ${JSON.stringify(result, null, 2)}`;
+                testResult.classList.remove('hidden');
+            } catch (error) {
+                testOutput.textContent = `❌ Test failed: ${error.message}`;
+                testResult.classList.remove('hidden');
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'Test API Connection';
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            
+            document.getElementById('testBtn').addEventListener('click', testConnection);
+        });
+    </script>
 </body>
 </html> 

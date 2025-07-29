@@ -24,23 +24,34 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
     setupStep1EventListeners();
+    setupApiKeyEventListeners();
     initializeOpenAIService();
 });
 
 // Initialize OpenAI Service
 function initializeOpenAIService() {
     try {
+        console.log('=== Initializing OpenAI Service ===');
+        
+        // Check API key status and update UI
+        updateApiKeyStatus();
+        
         // Validate configuration
         const configErrors = validateConfig();
+        console.log('Configuration errors:', configErrors);
+        
         if (configErrors.length > 0) {
             console.error('Configuration errors:', configErrors);
-            showNotification('Configuration errors: ' + configErrors.join(', '), 'error');
+            // Don't show error notification here - let the UI handle it
             return;
         }
+        
+        console.log('Configuration is valid, initializing OpenAIService...');
         
         // Initialize OpenAI service
         openAIService = new OpenAIService();
         console.log('OpenAI Service initialized successfully');
+        console.log('Service instance:', openAIService);
         
         // Test connection
         testAPIConnection();
@@ -62,6 +73,60 @@ function initializeOpenAIService() {
         console.error('Failed to initialize OpenAI service:', error);
         showNotification('Failed to initialize OpenAI service: ' + error.message, 'error');
     }
+}
+
+// Update API key status in UI
+function updateApiKeyStatus() {
+    const status = getApiKeyStatus();
+    const configuredDiv = document.getElementById('apiKeyConfigured');
+    const missingDiv = document.getElementById('apiKeyMissing');
+    
+    if (status.configured) {
+        configuredDiv.classList.remove('hidden');
+        missingDiv.classList.add('hidden');
+    } else {
+        configuredDiv.classList.add('hidden');
+        missingDiv.classList.remove('hidden');
+    }
+}
+
+// Setup API key configuration event listeners
+function setupApiKeyEventListeners() {
+    // Configure API key button
+    document.getElementById('configureApiKeyBtn').addEventListener('click', () => {
+        document.getElementById('apiKeyForm').classList.remove('hidden');
+    });
+    
+    // Change API key button
+    document.getElementById('changeApiKeyBtn').addEventListener('click', () => {
+        document.getElementById('apiKeyForm').classList.remove('hidden');
+    });
+    
+    // Save API key button
+    document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (setApiKey(apiKey)) {
+            showNotification('API key saved successfully!', 'success');
+            document.getElementById('apiKeyForm').classList.add('hidden');
+            document.getElementById('apiKeyInput').value = '';
+            updateApiKeyStatus();
+            // Re-initialize the service with the new key
+            initializeOpenAIService();
+        } else {
+            showNotification('Invalid API key format. Please enter a valid OpenAI API key.', 'error');
+        }
+    });
+    
+    // Cancel API key button
+    document.getElementById('cancelApiKeyBtn').addEventListener('click', () => {
+        document.getElementById('apiKeyForm').classList.add('hidden');
+        document.getElementById('apiKeyInput').value = '';
+    });
+    
+    // Test API connection button
+    document.getElementById('testApiBtn').addEventListener('click', () => {
+        testAPIConnection();
+    });
 }
 
 function initializeApp() {
@@ -224,36 +289,7 @@ function setupAccessibility() {
     });
 }
 
-// API Key Management
-function initializeOpenAIClient() {
-    try {
-        const apiKey = getApiKey();
-        console.log('Initializing OpenAI client...');
-        console.log('API Key retrieved:', apiKey ? 'Yes' : 'No');
-        
-        if (!apiKey || apiKey === 'sk-your-openai-api-key-here') {
-            console.log('No valid API key found');
-            showNotification('Please configure your OpenAI API key in the code.', 'error');
-            return;
-        }
-        
-        // Validate API key format (OpenAI keys start with 'sk-')
-        if (!apiKey.startsWith('sk-')) {
-            showNotification('Invalid OpenAI API key format. Please check your embedded API key.', 'error');
-            return;
-        }
-        
-        openaiClient = true; // Simple flag to indicate API is configured
-        updateAnalyzeButton();
-        
-        // Test API connection
-        testAPIConnection();
-        
-    } catch (error) {
-        console.error('Failed to initialize OpenAI client:', error);
-        showNotification('Failed to initialize OpenAI client', 'error');
-    }
-}
+// Old initializeOpenAIClient function removed - now using OpenAIService from api-service.js
 
 
 
@@ -1001,88 +1037,7 @@ async function analyzeSingleCV(file, jobTitle, jobDescription) {
     }
 }
 
-async function callOpenAIAPI(prompt) {
-    try {
-        const EMBEDDED_API_KEY = getApiKey();
-        console.log('=== OpenAI API Call Debug ===');
-        console.log('API Key available:', EMBEDDED_API_KEY ? 'Yes' : 'No');
-        console.log('API Key starts with sk-:', EMBEDDED_API_KEY?.startsWith('sk-'));
-        console.log('API Key starts with sk-proj--:', EMBEDDED_API_KEY?.startsWith('sk-proj--'));
-        console.log('API Key length:', EMBEDDED_API_KEY?.length);
-        console.log('API Key type:', EMBEDDED_API_KEY?.startsWith('sk-proj--') ? 'Project-based' : 'Standard');
-        console.log('Model being used:', OPENAI_CONFIG.model);
-        console.log('Prompt length:', prompt.length);
-        
-        const requestBody = {
-            model: OPENAI_CONFIG.model,
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are an expert HR recruiter analyzing CVs against job descriptions. Always respond with valid JSON only.'
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            max_tokens: OPENAI_CONFIG.max_tokens,
-            temperature: OPENAI_CONFIG.temperature
-        };
-        
-        console.log('Request body:', JSON.stringify(requestBody, null, 2));
-        console.log('Making OpenAI API request...');
-        
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${EMBEDDED_API_KEY}`
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response status text:', response.statusText);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error response body:', errorText);
-            
-            // Try to parse error as JSON for better error messages
-            try {
-                const errorJson = JSON.parse(errorText);
-                console.error('Parsed error JSON:', errorJson);
-                
-                if (errorJson.error) {
-                    throw new Error(`OpenAI API Error: ${errorJson.error.type} - ${errorJson.error.message}`);
-                } else {
-                    throw new Error(`OpenAI API Error: ${response.status} ${response.statusText} - ${errorText}`);
-                }
-            } catch (parseError) {
-                throw new Error(`OpenAI API Error: ${response.status} ${response.statusText} - ${errorText}`);
-            }
-        }
-
-        const data = await response.json();
-        console.log('Success response data:', data);
-        
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            console.error('Invalid response structure:', data);
-            throw new Error('Invalid response structure from OpenAI API');
-        }
-        
-        const content = data.choices[0].message.content;
-        console.log('Extracted content:', content);
-        console.log('=== End OpenAI API Call Debug ===');
-        
-        return content;
-    } catch (error) {
-        console.error('OpenAI API call failed:', error);
-        console.error('Error stack:', error.stack);
-        throw error;
-    }
-}
+// Old callOpenAIAPI function removed - now using OpenAIService from api-service.js
 
 function createAnalysisPrompt(jobTitle, jobDescription, cvText) {
     // Build dynamic scoring criteria based on extracted job priorities
