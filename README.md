@@ -259,3 +259,4 @@ For issues and questions:
 ---
 
 **Note**: This application is designed for educational and professional use. Always comply with relevant data protection and privacy regulations when processing candidate information. # Updated Tue Jul 29 18:25:11 EDT 2025
+# Test workflow trigger - Tue Jul 29 18:28:45 EDT 2025
