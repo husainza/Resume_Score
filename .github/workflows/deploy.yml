@@ -1,0 +1,95 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies (if any)
+      run: |
+        # Add any npm dependencies here if needed
+        echo "No dependencies to install"
+        
+    - name: Create secure config
+      run: |
+        # Create a secure config file for deployment
+        cat > config.js << 'EOF'
+        // Configuration for OpenAI API - Generated for deployment
+        const CONFIG = {
+            // API Configuration - will be set via environment variables
+            OPENAI_API_KEY: '${{ secrets.OPENAI_API_KEY }}',
+            OPENAI_MODEL: '${{ secrets.OPENAI_MODEL || 'gpt-4o-mini' }}',
+            OPENAI_MAX_TOKENS: parseInt('${{ secrets.OPENAI_MAX_TOKENS || '1000' }}'),
+            OPENAI_TEMPERATURE: parseFloat('${{ secrets.OPENAI_TEMPERATURE || '0.1' }}'),
+            
+            // App Configuration
+            MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+            SUPPORTED_FILE_TYPES: ['.pdf', '.doc', '.docx'],
+            MAX_CVS_PER_BATCH: 200,
+            
+            // UI Configuration
+            ITEMS_PER_PAGE: 10,
+            AUTO_SAVE_INTERVAL: 30000, // 30 seconds
+        };
+        
+        // Validate configuration
+        function validateConfig() {
+            const errors = [];
+            
+            if (!CONFIG.OPENAI_API_KEY) {
+                errors.push('OPENAI_API_KEY is not configured');
+            }
+            
+            if (!CONFIG.OPENAI_API_KEY.startsWith('sk-') && !CONFIG.OPENAI_API_KEY.startsWith('sk-proj--')) {
+                errors.push('Invalid OpenAI API key format');
+            }
+            
+            return errors;
+        }
+        
+        // Export for use in other files
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = { CONFIG, validateConfig };
+        } else {
+            window.CONFIG = CONFIG;
+            window.validateConfig = validateConfig;
+        }
+        EOF
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Deploy to GitHub Pages'
+        
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚀 This PR will be deployed to GitHub Pages when merged to main branch.'
+          }) 
