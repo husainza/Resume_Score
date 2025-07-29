@@ -270,3 +270,4 @@ For issues and questions:
 # Fix Step 2 CV analysis - Tue Jul 29 18:49:30 EDT 2025
 # Add version v2.1.0 to UI - Tue Jul 29 18:52:24 EDT 2025
 # Force deployment with version fix - Tue Jul 29 18:54:42 EDT 2025
+# Trigger workflow to enable manual run button - Tue Jul 29 19:02:59 EDT 2025
