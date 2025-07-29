@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CV Screener - Powered by Claude</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Claude API will be called directly via fetch -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-brain text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">AI CV Screener</h1>
+                        <p class="text-sm text-gray-500">Powered by OpenAI GPT</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="helpBtn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-question-circle text-lg"></i>
+                    </button>
+                    <button id="settingsBtn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-cog text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- API Configuration -->
+        <div id="apiConfiguration" class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div class="flex items-center space-x-3 mb-4">
+                <i class="fas fa-key text-blue-600"></i>
+                <h2 class="text-lg font-semibold text-gray-900">OpenAI API Configuration</h2>
+            </div>
+            
+            <!-- API Key Not Configured -->
+            <div id="apiKeyMissing" class="space-y-4">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-green-800">OpenAI API Ready</h3>
+                                <p class="text-green-700 text-sm">
+                                    API key is configured and ready to use.
+                                </p>
+                            </div>
+                        </div>
+                        <button id="testApiBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <i class="fas fa-wifi mr-1"></i>Test Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+
+        </div>
+
+        <!-- Step 1: Job Description Analysis -->
+        <div id="step1Section" class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
+                <h2 class="text-lg font-semibold text-gray-900">Step 1: Analyze Job Description & Set Scoring Parameters</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Job Description Input -->
+                <div class="border-b pb-6">
+                    <h3 class="text-md font-medium text-gray-900 mb-4">Job Description</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="jobTitle" class="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                            <input type="text" id="jobTitle" placeholder="e.g., Senior Software Engineer"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label for="jobDescription" class="block text-sm font-medium text-gray-700 mb-2">Job Description</label>
+                            <textarea id="jobDescription" rows="6" placeholder="Paste the job description here..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="jdFile" class="block text-sm font-medium text-gray-700 mb-2">Or Upload Job Description File</label>
+                            <input type="file" id="jdFile" accept=".txt,.doc,.docx,.pdf"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Button -->
+                <div class="text-center">
+                    <button id="analyzeJobBtn" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-magic mr-2"></i>
+                        Analyze Job Description
+                    </button>
+                    
+                    <!-- Job Analysis Progress -->
+                    <div id="jobAnalysisProgress" class="mt-4 hidden">
+                        <div class="flex items-center justify-center space-x-3 mb-2">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                            <span class="text-sm font-medium text-gray-700">Analyzing job description...</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="jobAnalysisProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="jobAnalysisStatus" class="text-xs text-gray-500 mt-1 text-center">Initializing...</p>
+                    </div>
+                </div>
+
+                <!-- Job Analysis Results -->
+                <div id="jobAnalysisResults" class="hidden space-y-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-green-800">Job Analysis Complete</h3>
+                                <p class="text-green-700 text-sm">Review and modify the scoring parameters below</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scoring Parameters -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="text-md font-medium text-gray-900 mb-4">Scoring Parameters</h3>
+                        
+                        <!-- Weight Distribution -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Weight Distribution</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Role Match</label>
+                                    <input type="number" id="roleMatchWeight" min="0" max="50" value="30" 
+                                           class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Experience</label>
+                                    <input type="number" id="experienceWeight" min="0" max="50" value="25" 
+                                           class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Skills</label>
+                                    <input type="number" id="skillsWeight" min="0" max="50" value="20" 
+                                           class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Education</label>
+                                    <input type="number" id="educationWeight" min="0" max="50" value="20" 
+                                           class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Achievements</label>
+                                    <input type="number" id="achievementsWeight" min="0" max="50" value="5" 
+                                           class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500">Total: <span id="weightTotal">100</span>%</div>
+                        </div>
+
+                        <!-- Required Skills -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Required Skills</h4>
+                            <div id="requiredSkillsContainer" class="flex flex-wrap gap-2 mb-3">
+                                <!-- Skills will be populated here -->
+                            </div>
+                            <div class="flex space-x-2">
+                                <input type="text" id="newSkillInput" placeholder="Add new skill..." 
+                                       class="flex-1 px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                <button id="addSkillBtn" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Industry-Specific Settings -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Industry-Specific Settings</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Industry</label>
+                                    <select id="industrySelect" class="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Select Industry</option>
+                                        <option value="mRNA">mRNA/Biotech</option>
+                                        <option value="software">Software/Technology</option>
+                                        <option value="finance">Finance</option>
+                                        <option value="healthcare">Healthcare</option>
+                                        <option value="manufacturing">Manufacturing</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Work Location</label>
+                                    <select id="workLocationSelect" class="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option value="onsite">Onsite Required</option>
+                                        <option value="remote">Remote Allowed</option>
+                                        <option value="hybrid">Hybrid</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Proceed to Step 2 Button -->
+                        <div class="text-center pt-4 border-t">
+                            <button id="proceedToStep2Btn" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                Proceed to Step 2: Upload CVs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: CV Upload and Analysis -->
+        <div id="step2Section" class="bg-white rounded-lg shadow-sm border p-6 mb-8 hidden">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
+                <h2 class="text-lg font-semibold text-gray-900">Step 2: Upload and Analyze CVs</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- CV Upload -->
+                <div class="border-b pb-6">
+                    <h3 class="text-md font-medium text-gray-900 mb-4">Upload CVs</h3>
+                    <div id="dropZone" class="drop-zone rounded-lg p-8 text-center cursor-pointer border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                        <div class="space-y-4">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                            <div>
+                                <p class="text-lg font-medium text-gray-900">Drop CV files here</p>
+                                <p class="text-sm text-gray-500">or click to browse</p>
+                            </div>
+                            <p class="text-xs text-gray-400">Supports PDF, DOCX, DOC (max 200 files)</p>
+                        </div>
+                        <input type="file" id="cvFiles" multiple accept=".pdf,.doc,.docx" class="hidden">
+                    </div>
+                    
+                    <!-- File List -->
+                    <div id="fileList" class="mt-4 space-y-2 hidden">
+                        <h3 class="text-sm font-medium text-gray-700">Selected Files:</h3>
+                        <div id="fileItems" class="space-y-1"></div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div id="progressContainer" class="mt-4 hidden">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Processing CVs...</span>
+                            <span id="progressText">0/0</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="progressBar" class="progress-bar bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Button -->
+                <div class="text-center">
+                    <button id="analyzeCVsBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-play mr-2"></i>
+                        Analyze CVs
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <div class="bg-white rounded-lg shadow-sm border">
+                <div class="p-6 border-b">
+                                <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-chart-bar text-blue-600"></i>
+                    <h2 class="text-lg font-semibold text-gray-900">Analysis Results</h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="clearBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 flex items-center space-x-2">
+                        <i class="fas fa-trash"></i>
+                        <span>Clear All</span>
+                    </button>
+                    <button id="exportCsv" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center space-x-2">
+                        <i class="fas fa-download"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <button id="exportJson" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center space-x-2">
+                        <i class="fas fa-code"></i>
+                        <span>Export JSON</span>
+                    </button>
+                    <button id="exportDetailedReport" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center space-x-2">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Detailed Report</span>
+                    </button>
+                </div>
+            </div>
+                </div>
+                
+                <!-- Job Requirements Summary -->
+                <div id="jobRequirementsSummary" class="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 hidden">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <i class="fas fa-bullseye text-blue-600 text-xl"></i>
+                        <h3 class="text-lg font-semibold text-gray-900">Job Requirements Analysis</h3>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div id="industryCard" class="bg-white rounded-lg p-3 border border-blue-200">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-industry text-blue-600"></i>
+                                <span class="text-sm font-medium text-gray-700">Industry</span>
+                            </div>
+                            <p id="industryValue" class="text-lg font-semibold text-blue-600 mt-1">-</p>
+                        </div>
+                        <div id="skillsCard" class="bg-white rounded-lg p-3 border border-green-200">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-tools text-green-600"></i>
+                                <span class="text-sm font-medium text-gray-700">Key Skills</span>
+                            </div>
+                            <p id="skillsValue" class="text-lg font-semibold text-green-600 mt-1">-</p>
+                        </div>
+                        <div id="experienceCard" class="bg-white rounded-lg p-3 border border-purple-200">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-clock text-purple-600"></i>
+                                <span class="text-sm font-medium text-gray-700">Experience Priority</span>
+                            </div>
+                            <p id="experienceValue" class="text-lg font-semibold text-purple-600 mt-1">-</p>
+                        </div>
+                        <div id="educationCard" class="bg-white rounded-lg p-3 border border-orange-200">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-graduation-cap text-orange-600"></i>
+                                <span class="text-sm font-medium text-gray-700">Education Priority</span>
+                            </div>
+                            <p id="educationValue" class="text-lg font-semibold text-orange-600 mt-1">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Filters -->
+                <div class="p-4 border-b bg-gray-50">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <i class="fas fa-filter text-gray-600"></i>
+                        <h3 class="text-lg font-semibold text-gray-900">Filters & Search</h3>
+                    </div>
+                    
+                    <!-- Basic Filters -->
+                    <div class="flex flex-wrap items-center space-x-6 mb-4">
+                        <div>
+                            <label for="scoreFilter" class="block text-sm font-medium text-gray-700 mb-1">Min Score:</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="range" id="scoreFilter" min="0" max="100" value="0" 
+                                       class="w-32">
+                                <span id="scoreFilterValue" class="text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded border">0</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="searchFilter" class="block text-sm font-medium text-gray-700 mb-1">Search:</label>
+                            <input type="text" id="searchFilter" placeholder="Search candidates..."
+                                   class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="sortBy" class="block text-sm font-medium text-gray-700 mb-1">Sort by:</label>
+                            <select id="sortBy" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="score">Relevance Score</option>
+                                <option value="name">Name</option>
+                                <option value="role">Role</option>
+                                <option value="company">Company</option>
+                                <option value="education">Education</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Skill Filters -->
+                    <div id="skillFilters" class="hidden">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <i class="fas fa-tags text-blue-600"></i>
+                            <h4 class="text-sm font-medium text-gray-700">Filter by Skills:</h4>
+                        </div>
+                        <div id="skillFilterButtons" class="flex flex-wrap gap-2">
+                            <!-- Dynamic skill filter buttons will be added here -->
+                        </div>
+                    </div>
+
+                    <!-- Experience Level Filters -->
+                    <div id="experienceFilters" class="hidden mt-4">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <i class="fas fa-chart-line text-green-600"></i>
+                            <h4 class="text-sm font-medium text-gray-700">Filter by Experience Level:</h4>
+                        </div>
+                        <div id="experienceFilterButtons" class="flex flex-wrap gap-2">
+                            <!-- Dynamic experience filter buttons will be added here -->
+                        </div>
+                    </div>
+
+                    <!-- Education Filters -->
+                    <div id="educationFilters" class="hidden mt-4">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <i class="fas fa-graduation-cap text-purple-600"></i>
+                            <h4 class="text-sm font-medium text-gray-700">Filter by Education:</h4>
+                        </div>
+                        <div id="educationFilterButtons" class="flex flex-wrap gap-2">
+                            <!-- Dynamic education filter buttons will be added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="score">
+                                    Score <i class="fas fa-sort ml-1"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="name">
+                                    Name <i class="fas fa-sort ml-1"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="role">
+                                    Current Role <i class="fas fa-sort ml-1"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="company">
+                                    Company <i class="fas fa-sort ml-1"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="duration">
+                                    Duration <i class="fas fa-sort ml-1"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="education">
+                                    Education <i class="fas fa-sort ml-1"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="px-6 py-3 border-t bg-gray-50 flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Showing <span id="startIndex">1</span> to <span id="endIndex">10</span> of <span id="totalResults">0</span> results
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="prevPage" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <button id="nextPage" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simple Summary Section -->
+        <div id="analyticsSection" class="hidden mt-8">
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <i class="fas fa-chart-bar text-blue-600"></i>
+                    <h3 class="text-lg font-semibold text-gray-900">Summary</h3>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <p class="text-2xl font-bold text-blue-600" id="totalCandidatesCount">0</p>
+                        <p class="text-sm text-gray-600">Total Candidates</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold text-green-600" id="averageScoreValue">0</p>
+                        <p class="text-sm text-gray-600">Average Score</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold text-purple-600" id="topScoreValue">0</p>
+                        <p class="text-sm text-gray-600">Top Score</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold text-orange-600" id="exceptionalCountValue">0</p>
+                        <p class="text-sm text-gray-600">Exceptional (85+)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for detailed view -->
+    <div id="detailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+                <div class="p-6 border-b">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">Candidate Details</h3>
+                        <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="modalContent" class="p-6">
+                    <!-- Modal content will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="p-6 border-b">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">How to Use</h3>
+                        <button id="closeHelpModal" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">1. Setup</h4>
+                        <p class="text-gray-600">Enter your Claude API key in the configuration section above.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">2. Job Description</h4>
+                        <p class="text-gray-600">Enter the job title and description, or upload a file containing the JD.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">3. Upload CVs</h4>
+                        <p class="text-gray-600">Drag and drop or select multiple CV files (PDF, DOCX, DOC).</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">4. Analyze Job Description</h4>
+                        <p class="text-gray-600">Click "Analyze Job Description" to extract requirements and set scoring parameters.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">5. Review & Modify</h4>
+                        <p class="text-gray-600">Review the extracted parameters, modify weights, add missing skills, then proceed to Step 2.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">6. Upload CVs</h4>
+                        <p class="text-gray-600">Upload CV files (PDF, DOCX, DOC) in Step 2.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">7. Analyze CVs</h4>
+                        <p class="text-gray-600">Click "Analyze CVs" to process all candidates using your custom scoring parameters.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">8. Review Results</h4>
+                        <p class="text-gray-600">View ranked candidates, filter by score, and export results.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="api-service.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 
